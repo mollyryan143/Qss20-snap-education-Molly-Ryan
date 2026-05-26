@@ -16,20 +16,17 @@ The main question is:
 
 Contains the main notebooks used for the project:
 
-- `01_pull_data.ipynb`  
-  Loads and inspects the dataset
+- `01_pull_data.ipynb`  - Loads and inspects the dataset
 
-- `02_clean_construct.ipynb`  
-  Cleans variables and creates welfare exposure groups
+- `02_clean_construct.ipynb`  -  Cleans variables and creates welfare exposure groups
 
-- `03_analyze_visualize.ipynb`  
-  Produces summary statistics and visualizations
+- `03_analyze_visualize.ipynb`  -  Produces summary statistics and visualizations
 
 ---
 
 ### `output/`
 
-Contains generated figures and tables from the analysis, including:
+Contains generated figures and tables from the analysis:
 
 - education distribution plots
 - high school completion comparisons
@@ -59,8 +56,6 @@ So far, the project:
 - created SNAP/TANF exposure groups
 - compared educational outcomes across groups
 - generated initial figures and tables
-
-The analysis is currently descriptive and does not make causal claims.
 
 ---
 
