@@ -2,35 +2,26 @@
 # Raw NLSY79-CYA data — too large for GitHub (2.8 GB total)
 # Download from https://www.nlsinfo.org/investigator/pages/login
 # ===========================================================================
-data/nlscya_all_1979-2018.csv
-data/nlscya_all_1979-2018.cdb
-data/nlscya_all_1979-2018.R
-data/nlscya_all_1979-2018.sas
-nlscya_all_1979-2018.dat
-nlscya_all_1979-2018.NLSCYA
-nlscya_all_1979-2018.sdf
-
-# Cleaned data is small enough to track — explicitly allow
-!data/nlscya_subset.csv
-!data/nlscya_cleaned.csv
+data/raw/
+*.dat
+*.NLSCYA
+*.sdf
+*.cdb
+*.sas
+*.R
 
 # ===========================================================================
-# Old project files (offshore finance & potato/HTPS attempts before pivot)
+# Misc / old files
 # ===========================================================================
-code/_archive/
-output/_archive/
-*_potato/
-nodes-*.csv
-relationships.csv
-milestone1.tex
-milestone1.txt
-ProblemSet3_Ryan.docx
-QSS30_HW4_Ryan.docx
-thesis_planning_notes.docx
-SIP_example_predictivemodeling.pdf
-felonysentencing_example_*.pdf
-example_README.md
-final_project_rubric.csv
+*.tmp
+*.tex
+*.pptx
+*.pdf
+check-*.jpg
+slide-*.jpg
+v2-*.jpg
+v3-*.jpg
+v4-*.jpg
 
 # ===========================================================================
 # Jupyter / Python / OS / Editor

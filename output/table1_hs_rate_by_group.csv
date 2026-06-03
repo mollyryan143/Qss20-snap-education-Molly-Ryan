@@ -1,5 +1,0 @@
-program_group,N,HS_rate,CI_halfwidth
-Neither,1567,0.921,0.013
-SNAP only,574,0.854,0.029
-TANF only,7,0.857,0.259
-Both SNAP and TANF,127,0.819,0.067

@@ -1,0 +1,16 @@
+variable,label,r_all,r_snap,r_nonsnap,diff,n_snap,n_nonsnap
+mother_educ,Mother's education,0.317,0.278,0.326,-0.048,2754,5529
+math_avg,Avg math score,0.303,0.255,0.291,-0.036,2675,5249
+ppvt_avg,Avg verbal score (PPVT),0.188,0.171,0.162,0.009,2685,5269
+female,Female,0.179,0.219,0.241,-0.022,2754,5529
+father_in_hh,Father in household,0.134,0.048,0.138,-0.09,2674,5444
+urban,Urban residence,0.057,0.055,0.075,-0.02,2745,5494
+midwest,Midwest region,0.054,0.052,0.052,-0.0,2746,5494
+mother_age,Mother's age at birth,0.026,0.029,0.073,-0.045,2754,5529
+birth_year,Birth year,-0.009,0.006,0.038,-0.032,2754,5529
+south,South region,-0.041,0.001,-0.047,0.048,2746,5494
+west,West region,-0.044,-0.049,-0.047,-0.002,2746,5494
+hispanic,Hispanic,-0.084,-0.102,-0.085,-0.017,2754,5529
+black,Black,-0.101,0.059,-0.107,0.166,2754,5529
+avg_work_freq,Work frequency (lower=more),-0.115,-0.042,-0.13,0.088,295,1193
+birth_order,Birth order,-0.177,-0.167,-0.134,-0.033,2754,5529

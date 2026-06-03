@@ -1,0 +1,10 @@
+,Non-SNAP mean,SNAP mean,Difference
+Female,0.439,0.597,0.158
+Black,0.246,0.497,0.252
+Hispanic,0.222,0.216,-0.006
+Birth year,1987.168,1983.995,-3.173
+Birth order,1.93,2.085,0.155
+Mother's age at birth,26.214,23.021,-3.193
+Mother's education (grades),13.444,12.22,-1.223
+Father in household (ever),0.797,0.602,-0.195
+Highest grade completed,5.903,4.43,-1.473
