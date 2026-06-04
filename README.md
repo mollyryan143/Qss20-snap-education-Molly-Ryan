@@ -1,6 +1,8 @@
 # Educational Attainment & Welfare in the United States
 ## QSS 20 Final Project — Molly Ryan, Dartmouth College, Spring 2026
 
+### 🌐 [View the live project website →](https://molly-ryan-portfolio.netlify.app/)
+
 ---
 
 ## Research Question
