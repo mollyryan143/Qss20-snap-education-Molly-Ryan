@@ -1,37 +1,56 @@
 """
-QSS 20 — Extract cognitive ability and child work variables from raw NLSCYA data
-and merge into the cleaned geo subset.
+03_extract_cognitive_work.py
+QSS 20 Final Project — Molly Ryan
 
-Cognitive variables:
-  PPVT (Peabody Picture Vocabulary Test) — language/verbal ability
-  MATH — math achievement score
-  Both available across waves 1986–2014. We take the average across all waves
-  where the child was tested, giving a stable ability measure.
+RESEARCH QUESTION:
+    Do predictors of educational attainment differ by childhood SNAP receipt?
 
-Child work variables (2002–2012):
-  CS-WORKFORPAY  — did the child work for pay (binary)
-  CS-EARNPERWK   — earnings per week
-  CS-WORKFREQ    — how often they worked
-  We summarize as: ever_worked (binary) and avg_earnings_per_week
+PURPOSE:
+    Extract cognitive ability scores and child work variables from the raw
+    NLSCYA data across multiple survey waves. These variables extend the
+    analysis beyond basic demographics and family structure to test whether
+    cognitive ability and early work experience predict grade completion
+    differently for SNAP vs. non-SNAP children.
 
-Output: nlscya_qss20_cleaned_subset_full.csv
+COGNITIVE VARIABLES:
+    ppvt_avg        : Average PPVT verbal score across all tested waves (1986-2014)
+    math_avg        : Average math achievement score across all tested waves
+    ppvt_earliest   : First recorded PPVT score (childhood baseline)
+    math_earliest   : First recorded math score (childhood baseline)
+    Coverage: ~80-82% of sample
+
+WORK VARIABLES (2002-2012):
+    ever_worked     : Child ever worked for pay (binary)
+    avg_earn_per_wk : Average weekly earnings
+    avg_work_freq   : Average work frequency (lower = more frequent)
+    Coverage: ~28% (only asked of older children in later waves)
+
+INPUT:
+    data/raw/nlscya_all_1979-2018.csv
+    data/processed/nlscya_qss20_cleaned_subset_geo.csv  (from script 02)
+
+OUTPUT:
+    data/processed/nlscya_qss20_cleaned_subset_full.csv
 """
 
 import pandas as pd
 import numpy as np
+import sys
 from pathlib import Path
 
-output_dir  = Path("../output")
-output_dir.mkdir(exist_ok=True)
+sys.path.insert(0, str(Path(__file__).parent))
+from utils import NEG_CODES, load_clean, print_coverage
 
-raw_path     = Path("../data/raw/nlscya_all_1979-2018.csv")
-cleaned_path = Path("../data/processed/nlscya_qss20_cleaned_subset_geo.csv")
+# ── Paths ─────────────────────────────────────────────────────────────────────
 
-# ── 1. Define variable IDs ────────────────────────────────────────────────────
+RAW_PATH = Path("data/raw/nlscya_all_1979-2018.csv")
+IN_PATH  = Path("data/processed/nlscya_qss20_cleaned_subset_geo.csv")
+OUT_PATH = Path("data/processed/nlscya_qss20_cleaned_subset_full.csv")
 
 ID_COL = "C0000100"
 
-# PPVT raw scores by wave
+# ── Variable IDs by wave (from NLS codebook) ──────────────────────────────────
+
 PPVT_COLS = {
     1986: "C0580900", 1988: "C0800400", 1990: "C0999600", 1992: "C1199600",
     1994: "C1508600", 1996: "C1565500", 1998: "C1800900", 2000: "C2504400",
@@ -39,7 +58,6 @@ PPVT_COLS = {
     2010: "C3994500", 2012: "C5538500", 2014: "C5814300",
 }
 
-# Math raw scores by wave
 MATH_COLS = {
     1986: "C0579900", 1988: "C0799400", 1990: "C0998600", 1992: "C1198600",
     1994: "C1507600", 1996: "C1564500", 1998: "C1799900", 2000: "C2503500",
@@ -47,7 +65,6 @@ MATH_COLS = {
     2010: "C3993600", 2012: "C5537600", 2014: "C5813400",
 }
 
-# Child work variables by wave
 WORK_FOR_PAY_COLS = {
     2002: "C2573900", 2004: "C2845500", 2006: "C3352300",
     2008: "C3856000", 2010: "C5104400", 2012: "C5681700",
@@ -63,37 +80,39 @@ WORK_FREQ_COLS = {
     2008: "C3856200", 2010: "C5104600", 2012: "C5681900",
 }
 
-# ── 2. Find which columns exist in the CSV ────────────────────────────────────
+# ── Helpers ───────────────────────────────────────────────────────────────────
 
-print("Reading column names from raw file...")
-raw_header = pd.read_csv(raw_path, nrows=0).columns.tolist()
-raw_clean  = [c.strip('"') for c in raw_header]
-raw_set    = set(raw_clean)
+def find_available_cols(col_dict, raw_set):
+    """Return subset of col_dict whose values exist in raw_set."""
+    return {yr: col for yr, col in col_dict.items() if col in raw_set}
 
-def find_cols(col_dict):
-    found = {}
-    for year, col in col_dict.items():
-        if col in raw_set:
-            found[year] = col
-        else:
-            print(f"  Missing: {col} ({year})")
-    return found
 
-print("\nPPVT columns:")
-ppvt_found  = find_cols(PPVT_COLS)
-print(f"  Found {len(ppvt_found)} waves")
+def earliest_valid(row, cols_by_year):
+    """Return the first non-missing, positive score across waves."""
+    for year in sorted(cols_by_year.keys()):
+        col = cols_by_year[year]
+        if col in row.index and pd.notna(row[col]) and row[col] > 0:
+            return row[col]
+    return np.nan
 
-print("\nMath columns:")
-math_found  = find_cols(MATH_COLS)
-print(f"  Found {len(math_found)} waves")
 
-print("\nWork-for-pay columns:")
-work_found  = find_cols(WORK_FOR_PAY_COLS)
-earn_found  = find_cols(EARN_PER_WK_COLS)
-freq_found  = find_cols(WORK_FREQ_COLS)
-print(f"  Found {len(work_found)} waves")
+# ── Identify available columns in raw file ────────────────────────────────────
 
-# ── 3. Load only needed columns ───────────────────────────────────────────────
+print("Scanning raw file column names...")
+raw_header = pd.read_csv(RAW_PATH, nrows=0).columns.tolist()
+raw_set    = set(c.strip('"') for c in raw_header)
+
+ppvt_found = find_available_cols(PPVT_COLS, raw_set)
+math_found = find_available_cols(MATH_COLS, raw_set)
+work_found = find_available_cols(WORK_FOR_PAY_COLS, raw_set)
+earn_found = find_available_cols(EARN_PER_WK_COLS, raw_set)
+freq_found = find_available_cols(WORK_FREQ_COLS, raw_set)
+
+print(f"  PPVT waves:    {len(ppvt_found)}  {sorted(ppvt_found.keys())}")
+print(f"  Math waves:    {len(math_found)}  {sorted(math_found.keys())}")
+print(f"  Work waves:    {len(work_found)}  {sorted(work_found.keys())}")
+
+# ── Load only needed columns ──────────────────────────────────────────────────
 
 all_needed = (
     {ID_COL}
@@ -104,101 +123,45 @@ all_needed = (
     | set(freq_found.values())
 )
 
-print(f"\nLoading {len(all_needed)} columns from raw file...")
-raw = pd.read_csv(
-    raw_path,
-    usecols=lambda c: c.strip('"') in all_needed,
-    low_memory=False,
-)
+raw = pd.read_csv(RAW_PATH, usecols=lambda c: c.strip('"') in all_needed, low_memory=False)
 raw.columns = [c.strip('"') for c in raw.columns]
-print("Raw subset shape:", raw.shape)
 
-# ── 4. Clean negative missing codes ──────────────────────────────────────────
-
-NEG = [-1, -2, -3, -4, -5, -7, -8, -9]
 for col in raw.columns:
     if col != ID_COL:
-        raw[col] = pd.to_numeric(raw[col], errors="coerce").replace(NEG, np.nan)
+        raw[col] = pd.to_numeric(raw[col], errors="coerce").replace(NEG_CODES, np.nan)
 
-# ── 5. Cognitive scores — average across waves ────────────────────────────────
+print(f"  Loaded {raw.shape[0]:,} rows for extraction")
 
-# Average PPVT score across all waves where tested
-ppvt_cols_list = list(ppvt_found.values())
-math_cols_list = list(math_found.values())
+# ── Cognitive scores ──────────────────────────────────────────────────────────
 
-raw["ppvt_avg"] = raw[ppvt_cols_list].mean(axis=1, skipna=True)
-raw["math_avg"] = raw[math_cols_list].mean(axis=1, skipna=True)
-
-# Also take the EARLIEST available score (childhood baseline)
-def earliest_valid(row, cols_by_year):
-    for year in sorted(cols_by_year.keys()):
-        col = cols_by_year[year]
-        if col in row.index and pd.notna(row[col]) and row[col] > 0:
-            return row[col]
-    return np.nan
-
+raw["ppvt_avg"]      = raw[list(ppvt_found.values())].mean(axis=1, skipna=True)
+raw["math_avg"]      = raw[list(math_found.values())].mean(axis=1, skipna=True)
 raw["ppvt_earliest"] = raw.apply(lambda r: earliest_valid(r, ppvt_found), axis=1)
 raw["math_earliest"] = raw.apply(lambda r: earliest_valid(r, math_found),  axis=1)
 
-print("\nCognitive score summary:")
-print(raw[["ppvt_avg","math_avg","ppvt_earliest","math_earliest"]].describe().round(2))
+# ── Work variables ────────────────────────────────────────────────────────────
 
-# ── 6. Work variables — summarize across waves ────────────────────────────────
+raw["ever_worked"]     = raw[list(work_found.values())].apply(
+    lambda col: col.map({1: 1, 0: 0})).max(axis=1)
+raw["avg_earn_per_wk"] = raw[list(earn_found.values())].mean(axis=1, skipna=True)
+raw["avg_work_freq"]   = raw[list(freq_found.values())].mean(axis=1, skipna=True)
 
-work_cols_list = list(work_found.values())
-earn_cols_list = list(earn_found.values())
-freq_cols_list = list(freq_found.values())
+# ── Merge into geo file ───────────────────────────────────────────────────────
 
-# Ever worked for pay across any wave
-raw["ever_worked"] = (
-    raw[work_cols_list]
-    .apply(lambda col: col.map({1: 1, 0: 0}))
-    .max(axis=1)
-)
-
-# Average weekly earnings across waves where they worked
-raw["avg_earn_per_wk"] = raw[earn_cols_list].mean(axis=1, skipna=True)
-
-# Average work frequency (1=regularly, 2=sometimes, 3=rarely — lower = more)
-raw["avg_work_freq"] = raw[freq_cols_list].mean(axis=1, skipna=True)
-
-print("\nWork variable summary:")
-print(raw[["ever_worked","avg_earn_per_wk","avg_work_freq"]].describe().round(2))
-
-print("\nEver worked distribution:")
-print(raw["ever_worked"].value_counts(dropna=False))
-
-# ── 7. Build merge frame ──────────────────────────────────────────────────────
-
-new_vars = raw[[
-    ID_COL,
-    "ppvt_avg", "math_avg",
-    "ppvt_earliest", "math_earliest",
+new_vars = raw[[ID_COL,
+    "ppvt_avg", "math_avg", "ppvt_earliest", "math_earliest",
     "ever_worked", "avg_earn_per_wk", "avg_work_freq",
 ]].rename(columns={ID_COL: "child_id"})
 
-# ── 8. Merge into cleaned geo file ───────────────────────────────────────────
+cleaned = load_clean(IN_PATH)
+full    = cleaned.merge(new_vars, on="child_id", how="left")
 
-cleaned = pd.read_csv(cleaned_path, low_memory=False)
-print(f"\nCleaned data before merge: {cleaned.shape}")
+print(f"\nFinal dataset: {full.shape[0]:,} rows x {full.shape[1]} columns")
+print_coverage(full, [
+    "ppvt_avg", "math_avg", "ppvt_earliest", "math_earliest",
+    "ever_worked", "avg_earn_per_wk", "avg_work_freq",
+])
 
-full = cleaned.merge(new_vars, on="child_id", how="left")
-print(f"Merged data shape:         {full.shape}")
-
-# Coverage check
-for col in ["ppvt_avg","math_avg","ppvt_earliest","math_earliest","ever_worked","avg_earn_per_wk"]:
-    n = full[col].notna().sum()
-    pct = n / len(full) * 100
-    print(f"  {col}: {n} non-missing ({pct:.1f}%)")
-
-# ── 9. Save ───────────────────────────────────────────────────────────────────
-
-out_path = Path("../data/processed/nlscya_qss20_cleaned_subset_full.csv")
-full.to_csv(out_path, index=False)
-print(f"\nSaved full dataset: {out_path}")
-print(f"Columns: {full.shape[1]}  |  Rows: {full.shape[0]}")
-print("\nNew variables added:")
-for col in ["ppvt_avg","math_avg","ppvt_earliest","math_earliest",
-            "ever_worked","avg_earn_per_wk","avg_work_freq"]:
-    print(f"  {col}")
-print("\nDone.")
+full.to_csv(OUT_PATH, index=False)
+print(f"\nSaved: {OUT_PATH}")
+print("Next step: run 04_regression_snap_vs_nonsnap.py")
