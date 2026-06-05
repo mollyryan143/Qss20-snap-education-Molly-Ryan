@@ -29,6 +29,7 @@ CONTROL_LABELS = {
     "mother_educ":  "Mother's education (grades)",
     "father_in_hh": "Father in household (ever)",
     "urban":        "Urban residence",
+    "northeast":    "Northeast region",
     "south":        "South region",
     "west":         "West region",
     "midwest":      "Midwest region",
@@ -46,7 +47,7 @@ BASE_CONTROLS = [
 ]
 
 FULL_CONTROLS = BASE_CONTROLS + [
-    "urban", "south", "west", "midwest",
+    "urban", "northeast", "south", "west", "midwest",
     "ppvt_avg", "math_avg", "avg_work_freq",
 ]
 
@@ -99,9 +100,10 @@ def make_analysis_frame(df):
         reg["urban"] = (reg["urban_rural"] == "Urban").astype(float).where(
             reg["urban_rural"].notna(), np.nan)
     if "region" in reg.columns:
-        reg["south"]   = (reg["region"] == "South").astype(float).where(reg["region"].notna(), np.nan)
-        reg["west"]    = (reg["region"] == "West").astype(float).where(reg["region"].notna(), np.nan)
-        reg["midwest"] = (reg["region"] == "Midwest").astype(float).where(reg["region"].notna(), np.nan)
+        reg["northeast"] = (reg["region"] == "Northeast").astype(float).where(reg["region"].notna(), np.nan)
+        reg["south"]     = (reg["region"] == "South").astype(float).where(reg["region"].notna(), np.nan)
+        reg["west"]      = (reg["region"] == "West").astype(float).where(reg["region"].notna(), np.nan)
+        reg["midwest"]   = (reg["region"] == "Midwest").astype(float).where(reg["region"].notna(), np.nan)
 
     # Cognitive scores (added in script 03)
     for col in ["ppvt_avg", "math_avg", "avg_work_freq"]:
