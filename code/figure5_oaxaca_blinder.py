@@ -139,7 +139,11 @@ endo_df.reset_index().to_csv(OUTPUT_DIR / "figure5_oaxaca_blinder.csv", index=Fa
 fig, axes = plt.subplots(1, 2, figsize=(13, 6))
 
 # Left panel: stacked bar showing decomposition
-components = ["Endowments\n(explained)", "Coefficients\n(unexplained)", "Interaction"]
+components = [
+    "Endowments\n(explained by\ncharacteristics)",
+    "Coefficients\n(unexplained —\ndifferent returns)",
+    "Interaction\n(overlap of\nboth effects)"
+]
 values     = [total_endow, total_coef, total_inter]
 colors     = ["#0f766e", "#b45309", "#94a3b8"]
 pcts       = [v/total_gap*100 for v in values]
@@ -204,7 +208,20 @@ fig.suptitle(
     "Non-SNAP vs. SNAP Children",
     fontsize=12, fontweight="bold"
 )
-plt.subplots_adjust(top=0.85, wspace=0.35)
+
+note = (
+    "Notes: Endowments = share of gap explained by SNAP and non-SNAP children having different "
+    "characteristics (e.g. mother's education, family structure).\n"
+    "Coefficients = share explained by those same characteristics having different effects for "
+    "each group — the core finding of this paper.\n"
+    "Interaction = technical overlap between the two effects; typically reported but not "
+    "substantively interpreted."
+)
+fig.text(0.5, -0.04, note, ha="center", fontsize=7.5, color="#475569",
+         wrap=True, style="italic",
+         bbox=dict(boxstyle="square,pad=0.4", fc="#f8fafc", ec="#e2e8f0"))
+
+plt.subplots_adjust(top=0.85, wspace=0.35, bottom=0.18)
 save_fig(fig, OUTPUT_DIR / "figure5_oaxaca_blinder.png", tight=False)
 print(f"\nSaved: {OUTPUT_DIR / 'figure5_oaxaca_blinder.png'}")
 print("figure5_oaxaca_blinder.py complete.")
